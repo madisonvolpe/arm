@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1583010769344.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "905179040",
+    "id" : "9CC2282F",
+    "lastKnownWriteTime" : 1583010824,
+    "last_content_update" : 1583010824515,
+    "path" : "~/Documents/Statistics/arm_isl/.gitignore",
+    "project_path" : ".gitignore",
+    "properties" : {
+        "cursorPosition" : "2,9",
+        "scrollLine" : "0",
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "gitignore"
+}

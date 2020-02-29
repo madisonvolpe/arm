@@ -1,0 +1,277 @@
+---
+title: "Arm - Chapter 3 Exercises "
+output:
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(arm)
+library(tidyverse)
+library(broom)
+```
+
+```{r}
+stat_sig <- function(fit){
+  
+  fit_frame <- data.frame(coef = coef(fit), se_coef = se.coef(fit))
+  fit_frame$lower <- fit_frame$coef - 2*fit_frame$se_coef
+  fit_frame$upper <- fit_frame$coef + 2*fit_frame$se_coef
+  
+  fit_frame <- fit_frame %>%
+                mutate(stat_sig = case_when(
+                       lower < 0 & upper > 0 ~ "not sig",
+                       lower < 0 & upper < 0 ~ "sig",
+                       lower > 0 & upper > 0 ~ "sig"
+                       ))
+  
+  return(fit_frame)
+}
+```
+
+## Chapter 3 Exercises 
+
+### 1
+
+```{r}
+pyth <- read.table("exercise2.1.dat", header = T)
+```
+
+```{r echo=TRUE}
+# cleaning 
+pyth_obs <- pyth[!is.na(pyth$y),]
+pyth_no <- pyth[is.na(pyth$y),]
+```
+
+#### A - Fit Linear Regression y ~ x1, x2 
+
+```{r echo=TRUE}
+fit <- lm(y ~ x1 + x2, data = pyth_obs)
+display(fit)
+```
+
+* Between groups whose x1 differed by 1 and whose x2 values are the same, on average their y differed by .51. Between groups whose x1 differed by 10 and whose x2 values are the same, on average their y differed by 8.
+
+* The intercept represents the predicted value for the group that had x1 and x2 = 0. This may or may not make sense to interpret given the variables. 
+
+* The residual standard deviation is small indicating that on average observations fall within .90 of their predicted values. This indicates a fairly decent fit
+
+```{r echo=TRUE}
+plot(fit$fitted.values ~ pyth_obs$y)
+```
+
+* The graph displays that the fitted values and actual observations are fairly close 
+
+```{r echo=TRUE}
+# to obtain the residual standard deviation manually 
+fit_df <- data.frame(obs = pyth_obs$y, pred = fit$fitted.values, resid = pyth_obs$y - fit$fitted.values)
+
+# sum of residuals squared / n-k 
+sum_resid <- sum(fit_df$resid^2)
+sqrt(sum_resid/37)
+```
+
+#### B - Display fit of model grpahically 
+
+```{r echo=TRUE}
+plot(pyth_obs$y ~ pyth_obs$x1)
+abline(lm(pyth_obs$y ~ pyth_obs$x1))
+```
+
+#### C - Residual plot, are the assumptions met 
+
+```{r echo=TRUE}
+# residual plot is the residuals versus the fitted values of the model 
+plot(fit$residuals ~ fit$fitted.values)
+```
+
+* No strong patterns, assumptions do appear to be met! 
+
+#### C (Again) -  Alternatively, we can also create a residual plot with broom + ggplot2
+
+```{r echo=TRUE}
+fit_augment <- augment(fit) # converts the model into df, very nice ! 
+ggplot(fit_augment, aes(x= .fitted, y= .resid)) + geom_point(colour = 'blue') + geom_hline(yintercept = 1)
+```
+
+#### D - Make predictions remaining 20 data points - are you confident with these predictions? 
+
+```{r echo=TRUE}
+predict.lm(fit, pyth_no)
+```
+
+* We can be fairly confident with these predictions, the model did fit the data fairly well. 
+
+### 3 
+
+#### A- Generating Data (Is Slope Coefficient Statistically Significant ?)
+
+```{r echo=TRUE}
+var1 <- rnorm(1000, 0, 1)
+var2 <- rnorm(1000, 0, 1)
+
+fit3 <- lm(var1 ~ var2)
+
+display(fit3)
+```
+
+
+```{r echo=TRUE}
+# use sqrt(diag(vcov(fit3))) to get SE
+
+paste("[", as.character(coef(fit3)[2] - 2 * sqrt(diag(vcov(fit3)))[2]), ", ", as.character(coef(fit3)[2] + 2 *
+                                                                                             sqrt(diag(vcov(fit3)))[2]), "]",
+      sep = "")
+```
+
+* The CI constructed confirms that the **slope coefficient estimate** is **not** statistically significant because 0 falls within the CI, therefore the estimate is not more than 2 SE away from zero. 
+
+#### B - Run Simulation (Count how many times the Slope Coefficient is Statistically Significant)
+
+```{r echo=TRUE}
+set.seed(717)
+z.scores <- rep(NA, 100)
+
+for(i in 1:100){
+  
+  var1 <- rnorm(1000, 0, 1)
+  var2 <- rnorm(1000, 0, 1)
+  
+  fit <- lm(var1 ~ var2)
+  
+  z.scores[i] <- coef(fit)[2] / se.coef(fit)[2] 
+  
+}
+
+abs_z.scores <- abs(z.scores)
+length(abs_z.scores[abs_z.scores > 2])
+```
+
+* After simulating the regression 100 times, the **slope coefficient** was only statisically significant 7 times. This is about 7% of the time. 
+
+### 4
+
+```{R include=FALSE}
+library(foreign)
+iq.data <- read.dta("child.iq.dta")
+```
+
+#### A - Fit regression of child test scores on mother's age, display the data + fitted model, check assumptions, and interpret the slope coefficient. When do you recommend mothers should give birth? What are you assuming in making these recommendations? 
+
+##### Fit regression  + display model 
+
+```{r echo=TRUE}
+fit_iq <- lm(ppvt ~ momage, data = iq.data)
+display(fit_iq)
+```
+
+##### Assumptions 
+
+```{r echo=TRUE}
+# residual plot 
+fit_iq.df <- augment(fit_iq)
+ggplot(fit_iq.df, aes(x = .fitted, y = .resid)) +
+  geom_point(colour = "red")
+```
+
+* The residual plot looks abnormal -- an interaction might be needed for this regression. Homoscedasticity appears to hold. 
+* Likewise, the residual sd is pretty high indicating that on average observations fall within 20.34 of their predicted values.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+## testing homoscedasticity with breusch pagan test 
+library(lmtest)
+bptest(ppvt ~ momage ,data = iq.data) 
+```
+
+* Breusch-Pagan test shows that we fall to reject the null hypothesis (homoscedasticity) because the p-values is not less than .05. 
+
+##### Interpretation of slope coefficient / Recommendation
+
+* For groups of children whose mother's ages when giving birth differed by 1 year, on average their difference in test scores was .84. Likewise, for groups of children whose mother's ages when giving birth differed by 10 years, on average their difference in test scores was 8 points. Based of this model, I would recommend that mothers give birth later. With this recommendation, I am assuming that the model is goood fit. 
+
+#### B - Repeat this regression that further includes mother's education, interpreting both slope coefficients in this model. Have your conclusions about the timing of birth changed? 
+
+```{r include=FALSE}
+iq.data$educ_cat <- factor(iq.data$educ_cat, levels = 1:4, labels = c("no hs", "hs", "college", "grad"))
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+fit_iq2 <- lm(ppvt ~ momage + educ_cat, data = iq.data)
+display(fit_iq2)
+```
+
+##### Interpretations  / Recommendation
+
+* The intercept represents the average score for the group of children whose mothers gave birth at age 0 and did not complete high school. In this case, the intercept does not make sense
+
+* The coefficient on momage represents - For those groups of children whose moms have the same education level, but their age of giving birth differs by 1 year, the average difference in their test scores is .29. 
+
+* The coefficient on hs represents - For those groups of children whose moms were the same age giving birth, but their education levels differ from hs to nonhs, the average difference in their test scores is 9.94. 
+
+* The coefficient on college represents - For those groups of children whose moms were the same age giving birth, but their education levels differ from nohs to college degree, the average difference in their test scores is 8.84. 
+
+* The coefficient on grad represents - For those groups of children whose moms were the same age giving birth, but their education levels differ from nohs to graduate degree, the average difference in their test scores is 17.68. 
+
+* It does seem that mom age at giving birth is not as important in determining test scores, but rather a mother's eduction level. 
+
+#### C - Create an indicator variable reflecting whether the mother has completed hs or not. Consider interactions between hs completion and mother's age at giving birth. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+iq.data <- iq.data %>%
+  mutate(complete_hs = ifelse(educ_cat == 'no hs', "no", "yes"))
+
+fit_iq3 <- lm(ppvt ~ momage + complete_hs + momage:complete_hs, data = iq.data)
+display(fit_iq3)
+#stat_sig(fit_iq3)
+```                     
+
+* In this case, the intercept represents the average score for children of mom's that did not complete highschool and who gave birth at age 0. Does not make sense in this case
+
+* Momage represents the difference in mean test scores for children whose mom's did not complete hs and whose mother's ages differ by 1. 
+
+* Completehs represents the difference in test scores for children whose mom's were age 0 when giving birth, but differ in whether they completed hs. It is implausible that mom's were aged 0  when giving birth. The difference in test scores for children whose mothers did not complete hs and who gave birth at age 0 and children whose mothers did complete high school and gave birth at age 0. 
+
+* Completehs * momage represents the difference in the slope for momage, comparing children whose mothers did and did not complete high school. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+## create a plot that shows the separate regression lines for each hs completion status group 
+ggplot(iq.data, aes(x = momage, y = ppvt, color = complete_hs)) +
+  geom_point() +
+  geom_smooth(method = 'lm') + 
+  expand_limits(y = 0)
+```
+
+#### D - Fit regression of child test scores on mom's age + education level for first 200 children and then predict for next 200 children. Graphically display outcomes of predicted + actual scores for the final 200 children 
+
+```{r echo=TRUE}
+set.seed(717)
+train_index <- sample(1:nrow(iq.data), .5 * nrow(iq.data))
+train_data <- iq.data[train_index,]
+test_data <- iq.data[!1:nrow(iq.data) %in% train_index,]
+```
+
+```{r echo=TRUE}
+fit_train <- lm(ppvt ~ momage + complete_hs + momage:complete_hs, data = train_data)
+display(fit_train)
+```
+
+```{r echo=TRUE}
+predicted_test_scores <- predict(fit_train, test_data)
+df <- data.frame(predicted_scores = predicted_test_scores, actual = test_data$ppvt, hs = test_data$complete_hs)
+## plot predicted test scores versus actual scores
+ggplot(df, aes(x=predicted_scores, y = actual)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+```
+
+### 5 
+
+#### A - Run a regression using beauty to predict course evaluations controlling for various other inputs. Display the fitted model graphically and explain the meaning of each of the coefficients, along with the residual sd.  Plot residuals versus fitted values. 
+
+```{r}
+beauty <- readr::read_csv("ProfEvaltnsBeautyPublic.csv")
+```
