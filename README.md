@@ -6,7 +6,7 @@
 ### Topics 
 
 * Linear Regression :small_orange_diamond:
-+ Chapter 3 & 4 in ARM :construction:
-+ Chapter 3 in ISL :construction:
+  + Chapter 3 & 4 in ARM :construction:
+  + Chapter 3 in ISL :construction:
 
 
