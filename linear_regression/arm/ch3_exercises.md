@@ -131,11 +131,11 @@ display(fit3)
 
     ## lm(formula = var1 ~ var2)
     ##             coef.est coef.se
-    ## (Intercept) -0.03     0.03  
-    ## var2         0.00     0.03  
+    ## (Intercept) -0.06     0.03  
+    ## var2         0.04     0.03  
     ## ---
     ## n = 1000, k = 2
-    ## residual sd = 1.02, R-Squared = 0.00
+    ## residual sd = 1.00, R-Squared = 0.00
 
 ``` r
 # use sqrt(diag(vcov(fit3))) to get SE
@@ -145,7 +145,7 @@ paste("[", as.character(coef(fit3)[2] - 2 * sqrt(diag(vcov(fit3)))[2]), ", ", as
       sep = "")
 ```
 
-    ## [1] "[-0.0656419704609558, 0.0642466998682093]"
+    ## [1] "[-0.024008202175164, 0.100771480232114]"
 
 -   The CI constructed confirms that the **slope coefficient estimate** is **not** statistically significant because 0 falls within the CI, therefore the estimate is not more than 2 SE away from zero.
 
@@ -344,9 +344,69 @@ ggplot(df, aes(x=predicted_scores, y = actual)) +
 beauty <- readr::read_csv("ProfEvaltnsBeautyPublic.csv")
 ```
 
-    ## Parsed with column specification:
-    ## cols(
-    ##   .default = col_double()
-    ## )
+``` r
+fit5 <- lm(courseevaluation ~ btystdave + tenured + minority +female, data = beauty)
+display(fit5)
+```
 
-    ## See spec(...) for full column specifications.
+    ## lm(formula = courseevaluation ~ btystdave + tenured + minority + 
+    ##     female, data = beauty)
+    ##             coef.est coef.se
+    ## (Intercept)  4.17     0.05  
+    ## btystdave    0.14     0.03  
+    ## tenured     -0.09     0.05  
+    ## minority    -0.11     0.07  
+    ## female      -0.21     0.05  
+    ## ---
+    ## n = 463, k = 5
+    ## residual sd = 0.54, R-Squared = 0.08
+
+``` r
+fit5_augment <- broom::augment(fit5)
+
+ggplot(fit5_augment, aes(x=.fitted, y = .resid)) +
+  geom_point(colour = 'blue') +
+  ggtitle("Residual Plot")
+```
+
+![](ch3_exercises_files/figure-markdown_github/unnamed-chunk-28-1.png)
+
+-   The residual plot does not reveal any patterns. Therefore, assumptions are not violated.
+-   The residual sd represents the fit of the model. In this case, the residual sd is small, which is suggestive of a decent fit. This linear model can predict course evaluation scores to an accuracy of .54 points.
+-   In this case, the intercept represents the average course evaluation score for a non-tenured, non-minority, male professor with a beauty score of 0. This model represents a different intercept + same slope model. The beauty score, in this case, has the same marginal effect on course evaluations for all groups. Therefore, a difference in beauty score, by 1 point leads to a .14 change in the course evaluation score all other variables considered equal. A 10 point difference in beauty score leads to a 1.4 change in the course evaluation score all other variables considered equal. For example, for non tenured, non minority, male professors, a difference in beauty by 10 points leads to a 1.4 change in their course evaluation scores. Alternatively, we can say that average course evalation score for not tenured, non-minority, male professors with a beauty score of 1 is 4.31. While the average course evaluation score for tenured, minority, female professors with a beauty score of 1 is 3.9.
+
+#### B - fit another model with an interaction
+
+``` r
+fit5b <- lm(courseevaluation ~ btystdave + female + btystdave:female, data = beauty)
+display(fit5b)
+```
+
+    ## lm(formula = courseevaluation ~ btystdave + female + btystdave:female, 
+    ##     data = beauty)
+    ##                  coef.est coef.se
+    ## (Intercept)       4.10     0.03  
+    ## btystdave         0.20     0.04  
+    ## female           -0.21     0.05  
+    ## btystdave:female -0.11     0.06  
+    ## ---
+    ## n = 463, k = 4
+    ## residual sd = 0.54, R-Squared = 0.07
+
+-   The residual sd of .54 shows that the model can predict course evaluation scores to an accuracy of .54.
+
+``` r
+fit5b_augment <- broom::augment(fit5b)
+ggplot(fit5b_augment, aes(x = .fitted, y = .resid)) +
+  geom_point(colour = 'blue') +
+  ggtitle("Residual Plot")
+```
+
+![](ch3_exercises_files/figure-markdown_github/unnamed-chunk-30-1.png)
+
+-   The residual plot does not display any distinct patterns. The assumptions do appear to be met.
+-   Interpreting this model is a bit more straightfoward ~ this is a different intercept different slope model.
+-   Again the intercept (4.10) represents the average score for male professors with a beauty score of 0.
+-   In this case, the -.21 on female represents the difference in course evaluation scores for male professors and female professors when beauty score equals 0. For example, male professors average score when beauty is 0 is 4.10, while female professors average score when beauty is 0 is 3.89. The difference between 4.10 and 3.89 is .21.
+-   While the -.11 on the interaction represents the difference in slope for beauty score comparing female and male professors.
+-   The .20 on beauty score (is the slope of the male professors line). In this case, it represents the comparison of the mean evaluation scores for male professors whose beauty scores differ by 1.

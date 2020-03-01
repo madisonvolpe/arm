@@ -272,6 +272,47 @@ ggplot(df, aes(x=predicted_scores, y = actual)) +
 
 #### A - Run a regression using beauty to predict course evaluations controlling for various other inputs. Display the fitted model graphically and explain the meaning of each of the coefficients, along with the residual sd.  Plot residuals versus fitted values. 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 beauty <- readr::read_csv("ProfEvaltnsBeautyPublic.csv")
 ```
+
+```{R}
+fit5 <- lm(courseevaluation ~ btystdave + tenured + minority +female, data = beauty)
+display(fit5)
+```
+
+```{r}
+fit5_augment <- broom::augment(fit5)
+
+ggplot(fit5_augment, aes(x=.fitted, y = .resid)) +
+  geom_point(colour = 'blue') +
+  ggtitle("Residual Plot")
+```
+
+* The residual plot does not reveal any patterns. Therefore, assumptions are not violated.
+* The residual sd represents the fit of the model. In this case, the residual sd is small, which is suggestive of a decent fit. This linear model can predict course evaluation scores to an accuracy of .54 points. 
+* In this case, the intercept represents the average course evaluation score for a non-tenured, non-minority, male professor with a beauty score of 0. This model represents  a different intercept + same slope model. The beauty score, in this case, has the same marginal effect on course evaluations for all groups. Therefore, a difference in beauty score, by 1 point leads to a .14 change in the course evaluation score all other variables considered equal. A 10 point difference in beauty score leads to a 1.4 change in the course evaluation score all other variables considered equal. For example, for non tenured, non minority, male professors, a difference in beauty by 10 points leads to a 1.4 change in their course evaluation scores. Alternatively, we can say that average course evalation score for not tenured, non-minority, male professors with a beauty score of 1 is 4.31. While the average course evaluation score for tenured, minority, female professors with a beauty score of 1 is 3.9. 
+
+#### B - fit another model with an interaction 
+
+
+```{r message=FALSE, warning=FALSE}
+fit5b <- lm(courseevaluation ~ btystdave + female + btystdave:female, data = beauty)
+display(fit5b)
+```
+
+* The residual sd of .54 shows that the model can predict course evaluation scores to an accuracy of .54. 
+
+```{r message=FALSE, warning=FALSE}
+fit5b_augment <- broom::augment(fit5b)
+ggplot(fit5b_augment, aes(x = .fitted, y = .resid)) +
+  geom_point(colour = 'blue') +
+  ggtitle("Residual Plot")
+```
+
+* The residual plot does not display any distinct patterns. The assumptions do appear to be met. 
+* Interpreting this model is a bit more straightfoward ~ this is a different intercept different slope model. 
+  + Again the intercept (4.10) represents the average score for male professors with a beauty score of 0. 
+  + In this case, the -.21 on female represents the difference in course evaluation scores for male professors and female professors when beauty score equals 0. For example, male professors average score when beauty is 0 is 4.10, while female professors average score when beauty is 0 is 3.89. The difference between 4.10 and 3.89 is .21. 
+  + While the -.11 on the interaction represents the difference in slope for beauty score comparing female and male professors. 
+  + The .20 on beauty score (is the slope of the male professors line). In this case, it represents the comparison of the mean evaluation scores for male professors whose beauty scores differ  by 1. 
